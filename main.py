@@ -8,37 +8,47 @@ import cookielib, urllib2, re, MySQLdb
 __author__ = 'Sebastian'
 
 class GooglePoz():
-    u"Klasa pozwalająca sprawdzać pozycję danej strony w google"
+    u"This class allow you to check current position of your page in google result, for specified phrase"
 
     page            = 0
     page_code       = None
     key_word        = 'jakis artykul' #default keyword to search
-    key_word = re.sub(' ', '+', key_word)
+    key_word        = re.sub(' ', '+', key_word)
     standard_page   = str('https://www.google.pl/search?newwindow=1&q='+key_word+'&oq='+key_word)
     site            = standard_page
     search_page     = 'onet.pl' # default page to search
     position        = 0
     pagination      = ''
-    i_p             = 1 #Incrementing position (Position number in google result)
+    i_p             = 1 #Incrementing position (Position number in google result) #TODO I should change name of this and next varible
     i_pa            = 1 #Incrementing page  (Page bumber where te page is finded in google result)
-    # MySQL Connect
+    # MySQL Connect data
     host            = '127.0.0.1'
     user            = 'root'
     password        = ''
     database        = 'google'
     conn            = False
     def __init__(self):
-        print('Inicjalizacja klasy')
+        print('Class init')
        # if (self.site == self.standard_page):
        #     self.connect()
     def dbConnect(self):
         self.conn    =   MySQLdb.connect(self.host, self.user, self.password, self.database, use_unicode=1)
         return  self.conn
-    def get(self, query):
+
+    def add_result(self, query):
         c   = self.conn.cursor()
         c.execute(query)
-        return c.fetchall()
+        self.conn.commit()
 
+    def get_page(self, page_id):
+        c   = self.conn.cursor()
+        c.execute("SELECT * FROM pages WHERE id=%s", (page_id))
+        for id, page in c.fetchall():
+            return page
+    def get_keyword(self, page_id):
+        c   = self.conn.cursor()
+        c.execute("SELECT * FROM keywords WHERE page_id=%s", (page_id))
+        return c.fetchall()
     def connect(self):
         if (self.site != False):
             cj      =   cookielib.CookieJar()
@@ -76,7 +86,7 @@ class GooglePoz():
                 elif(li.a['href'].find(self.search_page) != -1):
                     self.position = self.i_p
 
-                print(str(self.i_p)+' '+str(li.a['href'].find(self.search_page)))
+                #print(str(self.i_p)+' '+str(li.a['href'].find(self.search_page)))
                 self.i_p = self.i_p +1
             self.page   = int(self.page) + 10
             self.i_pa = self.i_pa + 1
@@ -85,9 +95,17 @@ if __name__=='__main__':
     #try:
     GooglePoz= GooglePoz()
     GooglePoz.dbConnect()
-    result = GooglePoz.get("SELECT * FROM result")
-    print(result)
+    #result = GooglePoz.get("SELECT * FROM result")
+    #print(result)
     #GooglePoz.get_poz('hosting www', 'prv.pl')
+
+    page        = GooglePoz.get_page('2')
+    for id, page_id, keyword in GooglePoz.get_keyword('2'):
+        #TODO Why 2 iteration print result from 1 iteration ?
+        print u'Pobieranie pozycja dla strony ' + page + u' - Słowa kluczowe ' + keyword
+        GooglePoz.get_poz(keyword, page)
+        print str(GooglePoz.position) +  ' ' + str(GooglePoz.page)
+
     #print(GooglePoz.position)
     #print(GooglePoz.page)
     #except TypeError:
