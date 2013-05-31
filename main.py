@@ -8,30 +8,37 @@ import cookielib, urllib2, re, MySQLdb
 __author__ = 'Sebastian'
 
 class GooglePoz():
-    u"Klasa pozwalaj¹ca sprawdzaæ pozycjê danej strony w google"
+    u"Klasa pozwalajÄ…ca sprawdzaÄ‡ pozycjÄ™ danej strony w google"
 
     page            = 0
     page_code       = None
-    key_word        = 'minecraft download'
+    key_word        = 'jakis artykul' #default keyword to search
     key_word = re.sub(' ', '+', key_word)
     standard_page   = str('https://www.google.pl/search?newwindow=1&q='+key_word+'&oq='+key_word)
     site            = standard_page
-    search_page     = 'patrz.pl'
+    search_page     = 'onet.pl' # default page to search
     position        = 0
     pagination      = ''
     i_p             = 1 #Incrementing position (Position number in google result)
     i_pa            = 1 #Incrementing page  (Page bumber where te page is finded in google result)
     # MySQL Connect
-    host            = 'localhost'
+    host            = '127.0.0.1'
     user            = 'root'
     password        = ''
     database        = 'google'
+    conn            = False
     def __init__(self):
         print('Inicjalizacja klasy')
        # if (self.site == self.standard_page):
        #     self.connect()
     def dbConnect(self):
-        conn    =   MySQLdb.connect(self.host, self.user, self.password, self.database, use_unicode=1)
+        self.conn    =   MySQLdb.connect(self.host, self.user, self.password, self.database, use_unicode=1)
+        return  self.conn
+    def get(self, query):
+        c   = self.conn.cursor()
+        c.execute(query)
+        return c.fetchall()
+
     def connect(self):
         if (self.site != False):
             cj      =   cookielib.CookieJar()
@@ -44,11 +51,11 @@ class GooglePoz():
                 if (response):
                     pass
             except TypeError:
-                print('Nieudane po³¹czenie ' + str(TypeError.message))
+                print('Nieudane poÅ‚Ä…czenie ' + str(TypeError.message))
             sp    = BeautifulSoup(response.read())
             self.page_code = sp
         else:
-            print('Nie podano strony z któr¹ nale¿y siê po³aczyæ')
+            print('Nie podano strony z ktÃ³rÄ… naleÅ¼y siÄ™ poÅ‚Ä…czyÄ‡')
 
 
     def get_poz(self, key_word, search_page):
@@ -77,8 +84,11 @@ class GooglePoz():
 if __name__=='__main__':
     #try:
     GooglePoz= GooglePoz()
-    GooglePoz.get_poz('hosting www', 'prv.pl')
-    print(GooglePoz.position)
-    print(GooglePoz.page)
+    GooglePoz.dbConnect()
+    result = GooglePoz.get("SELECT * FROM result")
+    print(result)
+    #GooglePoz.get_poz('hosting www', 'prv.pl')
+    #print(GooglePoz.position)
+    #print(GooglePoz.page)
     #except TypeError:
         #print(TypeError.message)
