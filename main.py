@@ -3,6 +3,7 @@ try:
     from BeautifulSoup import BeautifulSoup
 except ImportError:
     from bs4 import BeautifulSoup
+    #TODO: Add if possible small library that will be faken BeautifulSoup
 import cookielib, urllib2, re, MySQLdb
 
 __author__ = 'Sebastian'
@@ -85,13 +86,24 @@ class GooglePoz():
                     pass
                 elif(li.a['href'].find(self.search_page) != -1):
                     self.position = self.i_p
+                    #print self.i_p
 
                 #print(str(self.i_p)+' '+str(li.a['href'].find(self.search_page)))
                 self.i_p = self.i_p +1
             self.page   = int(self.page) + 10
             self.i_pa = self.i_pa + 1
 
+
+    def reset_connection(self):
+        self.i_p            = 1
+        self.i_pa           = 1
+        self.pagination     = ''
+        self.position       = 0
+        self.page_code      = None
+        self.page           = 0
+        self.site           = self.standard_page
 if __name__=='__main__':
+    #TODO: Add arguments that will allow run this script with paramer. Forexample main.py -s site_id  (Where site id is a number from database)
     #try:
     GooglePoz= GooglePoz()
     GooglePoz.dbConnect()
@@ -101,10 +113,10 @@ if __name__=='__main__':
 
     page        = GooglePoz.get_page('2')
     for id, page_id, keyword in GooglePoz.get_keyword('2'):
-        #TODO Why 2 iteration print result from 1 iteration ?
         print u'Pobieranie pozycja dla strony ' + page + u' - Słowa kluczowe ' + keyword
         GooglePoz.get_poz(keyword, page)
         print str(GooglePoz.position) +  ' ' + str(GooglePoz.page)
+        GooglePoz.reset_connection() # This will allow newt iteration from begining
 
     #print(GooglePoz.position)
     #print(GooglePoz.page)
