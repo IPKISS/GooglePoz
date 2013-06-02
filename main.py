@@ -3,15 +3,15 @@ try:
     from BeautifulSoup import BeautifulSoup
 except ImportError:
     from bs4 import BeautifulSoup
-    #TODO: Add if possible small library that will be faken BeautifulSoup
-import cookielib, urllib2, re, MySQLdb
+import cookielib, urllib2, re, MySQLdb, sys
 
 __author__ = 'Sebastian'
 
 class GooglePoz():
-    u"This class allow you to check current position of your page in google result, for specified phrase"
+    u"""This class allow you to check current position of your page in google result, for specified phrase"""
 
     page            = 0
+    page_id         = 1;
     page_code       = None
     key_word        = 'jakis artykul' #default keyword to search
     key_word        = re.sub(' ', '+', key_word)
@@ -28,6 +28,8 @@ class GooglePoz():
     password        = ''
     database        = 'google'
     conn            = False
+    if(page_id == None):
+        sys.exit('Call with the page_id and keyword_id argument')
     def __init__(self):
         print('Class init')
        # if (self.site == self.standard_page):
@@ -36,12 +38,13 @@ class GooglePoz():
         self.conn    =   MySQLdb.connect(self.host, self.user, self.password, self.database, use_unicode=1)
         return  self.conn
 
-    def add_result(self, query):
+    def add_result(self, page_id, page, position, keyword_id):
         c   = self.conn.cursor()
-        c.execute(query)
+        c.execute("INSERT INTO results VALUES(null, %s,%s,%s,%s, null)", (page, position, page_id, keyword_id))
         self.conn.commit()
 
     def get_page(self, page_id):
+        self.page_id = page_id
         c   = self.conn.cursor()
         c.execute("SELECT * FROM pages WHERE id=%s", (page_id))
         for id, page in c.fetchall():
@@ -62,14 +65,15 @@ class GooglePoz():
                 if (response):
                     pass
             except TypeError:
-                print('Nieudane połączenie ' + str(TypeError.message))
+                print('Unable to connect ' + str(TypeError.message))
             sp    = BeautifulSoup(response.read())
             self.page_code = sp
         else:
-            print('Nie podano strony z którą należy się połączyć')
+            print('There is no page defined to connect')
 
 
-    def get_poz(self, key_word, search_page):
+    def get_poz(self, key_word, search_page, keyword_id):
+        self.reset_connection() # This will allow newt iteration from begining
         key_word = re.sub(' ', '+', key_word)
         self.search_page        = search_page
         self.key_word           = key_word
@@ -92,6 +96,12 @@ class GooglePoz():
                 self.i_p = self.i_p +1
             self.page   = int(self.page) + 10
             self.i_pa = self.i_pa + 1
+            if (self.page == 100): #stop floding google
+                self.page = 0
+                self.position = 0
+                break
+        #TODO: save result to database
+        self.add_result(self.page_id, self.page, self.position, keyword_id)
 
 
     def reset_connection(self):
@@ -102,6 +112,7 @@ class GooglePoz():
         self.page_code      = None
         self.page           = 0
         self.site           = self.standard_page
+
 if __name__=='__main__':
     #TODO: Add arguments that will allow run this script with paramer. Forexample main.py -s site_id  (Where site id is a number from database)
     #try:
@@ -110,13 +121,18 @@ if __name__=='__main__':
     #result = GooglePoz.get("SELECT * FROM result")
     #print(result)
     #GooglePoz.get_poz('hosting www', 'prv.pl')
+    try:
+        page_id = sys.argv[1]
+    except IndexError:
+        page_id = '2'
 
-    page        = GooglePoz.get_page('2')
-    for id, page_id, keyword in GooglePoz.get_keyword('2'):
-        print u'Pobieranie pozycja dla strony ' + page + u' - Słowa kluczowe ' + keyword
-        GooglePoz.get_poz(keyword, page)
+
+    page        = GooglePoz.get_page(page_id)
+    for id, page_id, keyword in GooglePoz.get_keyword(page_id):
+        print u' Getting position for page ' + page + u' - and keyword ' + keyword
+        GooglePoz.get_poz(keyword, page, id)
         print str(GooglePoz.position) +  ' ' + str(GooglePoz.page)
-        GooglePoz.reset_connection() # This will allow newt iteration from begining
+
 
     #print(GooglePoz.position)
     #print(GooglePoz.page)
